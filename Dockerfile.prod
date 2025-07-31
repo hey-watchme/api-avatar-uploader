@@ -1,0 +1,53 @@
+# マルチステージビルド - 本番用
+FROM python:3.11-slim as builder
+
+# 作業ディレクトリを設定
+WORKDIR /app
+
+# システムパッケージをインストール
+RUN apt-get update && apt-get install -y \
+    gcc \
+    && rm -rf /var/lib/apt/lists/*
+
+# 依存関係をコピーしてインストール
+COPY requirements.txt .
+RUN pip install --no-cache-dir --user -r requirements.txt
+
+# 本番イメージ
+FROM python:3.11-slim
+
+# 作業ディレクトリを設定
+WORKDIR /app
+
+# システムパッケージをインストール（最小限）
+RUN apt-get update && apt-get install -y \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# 非rootユーザーを作成
+RUN useradd -m -u 1000 apiuser
+
+# ビルダーステージから依存関係をコピー
+COPY --from=builder /root/.local /home/apiuser/.local
+
+# アプリケーションコードをコピー
+COPY app.py .
+
+# 権限を設定
+RUN chown -R apiuser:apiuser /app /home/apiuser/.local
+
+# ユーザーを切り替え
+USER apiuser
+
+# Pythonパスを設定
+ENV PATH=/home/apiuser/.local/bin:$PATH
+
+# ポートを公開
+EXPOSE 8014
+
+# ヘルスチェック
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+  CMD curl -f http://localhost:8014/health || exit 1
+
+# アプリケーションを起動（本番モード）
+CMD ["python", "-m", "uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8014", "--workers", "2"]

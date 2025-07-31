@@ -1,0 +1,31 @@
+version: '3.8'
+
+services:
+  avatar-uploader:
+    image: 754724220380.dkr.ecr.ap-southeast-2.amazonaws.com/watchme-api-avatar-uploader:latest
+    container_name: watchme-avatar-uploader
+    ports:
+      - "8014:8014"
+    environment:
+      - API_PORT=8014
+      - API_HOST=0.0.0.0
+      # Supabase Configuration
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_KEY=${SUPABASE_KEY}
+      # AWS S3 Configuration
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - S3_BUCKET_NAME=${S3_BUCKET_NAME}
+      - AWS_REGION=${AWS_REGION}
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8014/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"

@@ -1,0 +1,22 @@
+version: '3.8'
+
+services:
+  avatar-api:
+    build: .
+    container_name: watchme-avatar-api
+    ports:
+      - "8014:8014"
+    environment:
+      - API_PORT=8014
+      - API_HOST=0.0.0.0
+    env_file:
+      - .env
+    volumes:
+      - ./logs:/app/logs
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8014/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s

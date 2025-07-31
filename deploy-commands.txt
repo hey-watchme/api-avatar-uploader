@@ -1,0 +1,46 @@
+# EC2でのデプロイコマンド集
+
+# 1. EC2にSSH接続
+ssh -i ~/watchme-key.pem ubuntu@3.24.16.82
+
+# 2. 実行権限を付与（初回のみ）
+chmod +x *.sh
+
+# 3. systemdセットアップ（初回のみ）
+./setup-systemd.sh
+
+# 4. サービスを起動/再起動
+sudo systemctl restart watchme-avatar-uploader
+
+# 5. 状態確認
+sudo systemctl status watchme-avatar-uploader
+
+# 6. ログ確認（必要に応じて）
+sudo journalctl -u watchme-avatar-uploader -f
+
+# 7. Nginx設定（初回のみ）
+sudo nano /etc/nginx/sites-available/api.hey-watch.me
+# 以下を追加:
+location /avatar/ {
+    proxy_pass http://localhost:8014/;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    
+    # ファイルアップロード設定
+    client_max_body_size 10M;
+    
+    # CORS設定
+    add_header "Access-Control-Allow-Origin" "*";
+    add_header "Access-Control-Allow-Methods" "GET, POST, DELETE, OPTIONS";
+    add_header "Access-Control-Allow-Headers" "Content-Type, Authorization";
+    
+    if ($request_method = "OPTIONS") {
+        return 204;
+    }
+}
+
+# Nginx設定をテスト＆リロード
+sudo nginx -t
+sudo systemctl reload nginx
