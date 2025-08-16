@@ -159,7 +159,7 @@ SUPABASE_URL=https://xxxxx.supabase.co
 SUPABASE_KEY=eyJhbGci...
 AWS_ACCESS_KEY_ID=AKIA...
 AWS_SECRET_ACCESS_KEY=xxxxx
-S3_BUCKET_NAME=watchme-vault
+S3_BUCKET_NAME=watchme-avatars
 AWS_REGION=ap-southeast-2  # S3バケットのリージョンに注意
 ```
 
@@ -199,7 +199,7 @@ response = requests.post(url, json=data)
 ```
 
 ### 7. S3バケットのリージョン
-- バケット名: `watchme-vault`
+- バケット名: `watchme-avatars`
 - リージョン: `ap-southeast-2` （us-east-1ではない）
 - 返却されるURLはus-east-1形式だが、実際はap-southeast-2にリダイレクトされる
 

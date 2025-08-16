@@ -2,6 +2,14 @@
 
 iOS、Android、Webアプリケーション共通で使用するアバター管理APIです。
 
+## 📅 更新履歴
+
+### 2025-08-16 更新
+- **S3バケット名を統一**: `watchme-vault` → `watchme-avatars`に変更
+- **S3リージョンを正しく設定**: `us-east-1` → `ap-southeast-2`に修正
+- **S3パブリックアクセス設定**: アップロードされた画像が正しく表示されるよう設定
+- **本番環境へのデプロイ完了**: EC2インスタンス（3.24.16.82）で稼働中
+
 ## ⚠️ 重要な注意事項
 
 **このAPIは現在、開発・テスト用に認証機能を無効化しています。**
@@ -43,14 +51,14 @@ pip3 install -r requirements.txt
 
 ```env
 # Supabase Configuration
-SUPABASE_URL=your_supabase_url
+SUPABASE_URL=https://qvtlwotzuzbavrzqhyvt.supabase.co
 SUPABASE_KEY=your_supabase_anon_key
 
-# AWS S3 Configuration
+# AWS S3 Configuration（2025-08-16更新）
 AWS_ACCESS_KEY_ID=your_aws_access_key
 AWS_SECRET_ACCESS_KEY=your_aws_secret_key
-S3_BUCKET_NAME=watchme-avatars
-AWS_REGION=ap-southeast-2
+S3_BUCKET_NAME=watchme-avatars  # 重要: watchme-vaultではなくwatchme-avatarsを使用
+AWS_REGION=ap-southeast-2        # 重要: us-east-1ではなくap-southeast-2を使用
 
 # API Configuration
 API_PORT=8014
@@ -182,6 +190,19 @@ python3 test_with_ids.py
 - ユーザーID: `164cba5a-dba6-4cbc-9b39-4eea28d98fa5`
 - サブジェクトID: `f394486f-bd07-4fcc-8afe-eab38b4ebb0f`
 
+## 本番環境情報
+
+### デプロイ状況
+- **稼働環境**: EC2インスタンス（3.24.16.82）
+- **ポート**: 8014
+- **Dockerイメージ**: ECR（754724220380.dkr.ecr.ap-southeast-2.amazonaws.com/watchme-api-avatar-uploader）
+- **S3バケット**: `watchme-avatars`（ap-southeast-2リージョン）
+
+### S3バケット設定
+- **パブリックアクセス**: 有効（画像の読み取りのみ）
+- **バケットポリシー**: GetObject許可
+- **CORS**: すべてのオリジンからのGET/HEADを許可
+
 ## 本番環境への移行時の注意事項
 
 1. **認証機能の有効化**
@@ -197,3 +218,25 @@ python3 test_with_ids.py
    - CORS設定の見直し
    - レート制限の実装
    - ログ監視の設定
+
+## トラブルシューティング
+
+### 画像が表示されない場合
+1. **S3バケットのパブリックアクセス設定を確認**
+   - バケットポリシーでGetObjectが許可されているか
+   - パブリックアクセスブロックが適切に設定されているか
+
+2. **URLフォーマットを確認**
+   - 正しい形式: `https://watchme-avatars.s3.ap-southeast-2.amazonaws.com/users/{user_id}/avatar.jpg`
+   - 誤った形式: `watchme-vault`や`us-east-1`が含まれている場合は古い設定
+
+3. **APIレスポンスを確認**
+   ```bash
+   curl http://3.24.16.82:8014/health
+   ```
+
+### デプロイ後の確認
+```bash
+# テストスクリプトを実行
+python3 test_after_deploy.py
+```

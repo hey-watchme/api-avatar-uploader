@@ -1,0 +1,38 @@
+# EC2上で実行するコマンド（コピペ用）
+# 2025-08-16 Avatar Uploader API デプロイ
+
+# 1. SSH接続
+ssh -i ~/watchme-key.pem ubuntu@3.24.16.82
+
+# 2. 現在のサービス状態を確認
+sudo systemctl status watchme-avatar-uploader
+
+# 3. サービスを停止
+sudo systemctl stop watchme-avatar-uploader
+
+# 4. 新しいイメージをプル（ECRログインが必要）
+aws ecr get-login-password --region ap-southeast-2 | docker login --username AWS --password-stdin 754724220380.dkr.ecr.ap-southeast-2.amazonaws.com
+docker pull 754724220380.dkr.ecr.ap-southeast-2.amazonaws.com/watchme-api-avatar-uploader:latest
+
+# 5. 古いコンテナを削除（存在する場合）
+docker stop watchme-avatar-uploader 2>/dev/null || true
+docker rm watchme-avatar-uploader 2>/dev/null || true
+
+# 6. 新しいコンテナを起動
+docker run -d \
+  --name watchme-avatar-uploader \
+  --restart unless-stopped \
+  -p 8014:8014 \
+  --env-file ~/.env.avatar-uploader \
+  754724220380.dkr.ecr.ap-southeast-2.amazonaws.com/watchme-api-avatar-uploader:latest
+
+# 7. コンテナの状態確認
+docker ps | grep avatar-uploader
+docker logs watchme-avatar-uploader --tail 20
+
+# 8. ヘルスチェック
+curl http://localhost:8014/health | python3 -m json.tool
+
+# 9. systemdサービスを再起動（systemd経由で管理している場合）
+sudo systemctl restart watchme-avatar-uploader
+sudo systemctl status watchme-avatar-uploader
