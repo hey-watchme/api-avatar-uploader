@@ -2,19 +2,70 @@
 
 iOS、Android、Webアプリケーション共通で使用するアバター管理APIです。
 
+## 🔴 重大なセキュリティ警告
+
+**このAPIは現在、認証機能が無効化されており、深刻なセキュリティリスクがあります。**
+
+### 現在の問題点
+- ❌ **誰でもアクセス可能**: 認証なしで全てのエンドポイントにアクセス可能
+- ❌ **他人のアバター変更可能**: 悪意のある第三者が任意のユーザーIDを指定してアバターを変更できる
+- ❌ **データ改ざんリスク**: user_idやsubject_idを知っていれば誰でもデータを変更可能
+
+### 必要な対応（本番環境移行前に必須）
+```python
+# app.pyの各エンドポイントに以下の認証処理を追加する必要があります
+
+from fastapi import Depends, HTTPException, status
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+
+security = HTTPBearer()
+
+async def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
+    """Supabase JWTトークンを検証"""
+    token = credentials.credentials
+    try:
+        # Supabaseでトークンを検証
+        user = supabase.auth.get_user(token)
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid authentication token"
+            )
+        return user
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Authentication failed"
+        )
+
+# 各エンドポイントに認証を追加
+@app.post("/v1/users/{user_id}/avatar")
+async def upload_user_avatar(
+    user_id: str,
+    file: UploadFile = File(...),
+    current_user = Depends(verify_token)  # ← この行を追加
+):
+    # user_idが現在のユーザーと一致するか確認
+    if user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Permission denied")
+    # ... 以下、既存の処理
+```
+
 ## 📅 更新履歴
 
 ### 2025-08-16 更新
+- **HTTPS化完了**: Nginx経由で`https://api.hey-watch.me/avatar/`でアクセス可能に
 - **S3バケット名を統一**: `watchme-vault` → `watchme-avatars`に変更
 - **S3リージョンを正しく設定**: `us-east-1` → `ap-southeast-2`に修正
 - **S3パブリックアクセス設定**: アップロードされた画像が正しく表示されるよう設定
 - **本番環境へのデプロイ完了**: EC2インスタンス（3.24.16.82）で稼働中
 
-## ⚠️ 重要な注意事項
+## ⚠️ 開発時の一時的な状態
 
-**このAPIは現在、開発・テスト用に認証機能を無効化しています。**
-- 本番環境で使用する前に、必ず認証機能を有効化してください
-- 認証なしの状態では、誰でもアバターを変更できてしまいます
+**開発・テスト期間中のみ、以下の理由で認証を無効化しています：**
+- テスト環境での動作確認を簡単にするため
+- 認証トークンの設定なしでAPIテストを可能にするため
+- **ただし、本番環境では必ず認証を有効化すること**
 
 ## 概要
 
