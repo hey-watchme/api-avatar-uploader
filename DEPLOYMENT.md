@@ -19,25 +19,25 @@
 
 ```bash
 # 環境変数ファイルをEC2に配置
-scp -i ~/watchme-key.pem .env ubuntu@3.24.16.82:~/.env.avatar-uploader
+scp -i /Users/kaya.matsumoto/watchme-key.pem .env ubuntu@3.24.16.82:~/.env.avatar-uploader
 
 # Docker Compose設定ファイル
-scp -i ~/watchme-key.pem docker-compose.prod.yml ubuntu@3.24.16.82:~/
+scp -i /Users/kaya.matsumoto/watchme-key.pem docker-compose.prod.yml ubuntu@3.24.16.82:~/
 
 # 起動スクリプト
-scp -i ~/watchme-key.pem run-prod.sh ubuntu@3.24.16.82:~/
-scp -i ~/watchme-key.pem run-avatar-uploader.sh ubuntu@3.24.16.82:~/
+scp -i /Users/kaya.matsumoto/watchme-key.pem run-prod.sh ubuntu@3.24.16.82:~/
+scp -i /Users/kaya.matsumoto/watchme-key.pem run-avatar-uploader.sh ubuntu@3.24.16.82:~/
 
 # systemdサービスファイル
-scp -i ~/watchme-key.pem watchme-avatar-uploader.service ubuntu@3.24.16.82:~/
-scp -i ~/watchme-key.pem setup-systemd.sh ubuntu@3.24.16.82:~/
+scp -i /Users/kaya.matsumoto/watchme-key.pem watchme-avatar-uploader.service ubuntu@3.24.16.82:~/
+scp -i /Users/kaya.matsumoto/watchme-key.pem setup-systemd.sh ubuntu@3.24.16.82:~/
 ```
 
 ### 3. EC2上でのセットアップ（初回のみ）
 
 ```bash
 # EC2にSSH接続
-ssh -i ~/watchme-key.pem ubuntu@3.24.16.82
+ssh -i /Users/kaya.matsumoto/watchme-key.pem ubuntu@3.24.16.82
 
 # 実行権限を付与
 chmod +x run-prod.sh

@@ -24,8 +24,14 @@ services:
       timeout: 10s
       retries: 3
       start_period: 40s
+    networks:
+      - watchme-network
     logging:
       driver: "json-file"
       options:
         max-size: "10m"
         max-file: "3"
+
+networks:
+  watchme-network:
+    external: true  # 必須！
