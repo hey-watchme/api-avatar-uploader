@@ -13,16 +13,18 @@ echo "Logging in to ECR..."
 aws ecr get-login-password --region $AWS_REGION | \
   docker login --username AWS --password-stdin $ECR_REGISTRY
 
-# Pull latest image
-echo "Pulling latest image..."
-docker pull --platform linux/arm64 $ECR_REGISTRY/$ECR_REPOSITORY:latest
-
-# Stop and remove existing container
+# Stop and remove existing container (handle both compose and standalone)
 echo "Stopping existing container..."
-docker-compose -f docker-compose.prod.yml down || true
+docker stop $CONTAINER_NAME 2>/dev/null || true
+docker rm $CONTAINER_NAME 2>/dev/null || true
+docker-compose -f docker-compose.prod.yml down 2>/dev/null || true
 
 # Remove old image
 docker rmi $ECR_REGISTRY/$ECR_REPOSITORY:latest 2>/dev/null || true
+
+# Pull latest image
+echo "Pulling latest image..."
+docker pull --platform linux/arm64 $ECR_REGISTRY/$ECR_REPOSITORY:latest
 
 # Ensure network exists
 docker network create watchme-network 2>/dev/null || true

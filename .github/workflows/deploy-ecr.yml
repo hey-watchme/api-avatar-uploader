@@ -124,8 +124,10 @@ jobs:
           set -e
           cd /home/ubuntu/watchme-avatar-uploader
 
-          # Stop existing container
-          docker-compose -f docker-compose.prod.yml down || true
+          # Stop and remove existing container (handle both compose and standalone)
+          docker stop watchme-avatar-uploader 2>/dev/null || true
+          docker rm watchme-avatar-uploader 2>/dev/null || true
+          docker-compose -f docker-compose.prod.yml down 2>/dev/null || true
 
           # Run deployment
           ./run-prod.sh
