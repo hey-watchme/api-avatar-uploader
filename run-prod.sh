@@ -1,40 +1,48 @@
 #!/bin/bash
 set -e
 
-ECR_REPOSITORY="754724220380.dkr.ecr.ap-southeast-2.amazonaws.com/watchme-api-avatar-uploader"
+ECR_REGISTRY="754724220380.dkr.ecr.ap-southeast-2.amazonaws.com"
+ECR_REPOSITORY="watchme-api-avatar-uploader"
 AWS_REGION="ap-southeast-2"
 CONTAINER_NAME="watchme-avatar-uploader"
 
-echo "=== watchme-api-avatar-uploader 本番環境起動 ==="
+echo "=== ${CONTAINER_NAME} deployment ==="
 
-# ECRから最新イメージをプル
-echo "ECRから最新イメージをプル中..."
+# ECR login
+echo "Logging in to ECR..."
 aws ecr get-login-password --region $AWS_REGION | \
-  docker login --username AWS --password-stdin 754724220380.dkr.ecr.ap-southeast-2.amazonaws.com
-docker pull $ECR_REPOSITORY:latest
+  docker login --username AWS --password-stdin $ECR_REGISTRY
 
-# 既存のコンテナを停止・削除
-echo "既存のコンテナを停止中..."
+# Pull latest image
+echo "Pulling latest image..."
+docker pull --platform linux/arm64 $ECR_REGISTRY/$ECR_REPOSITORY:latest
+
+# Stop and remove existing container
+echo "Stopping existing container..."
 docker-compose -f docker-compose.prod.yml down || true
 
-# 本番環境でコンテナを起動
-echo "新しいコンテナを起動中..."
+# Remove old image
+docker rmi $ECR_REGISTRY/$ECR_REPOSITORY:latest 2>/dev/null || true
+
+# Ensure network exists
+docker network create watchme-network 2>/dev/null || true
+
+# Start new container
+echo "Starting new container..."
 docker-compose -f docker-compose.prod.yml up -d
 
-# 起動確認
-echo "起動確認中..."
+# Health check (max 60s)
+echo "Running health check..."
 sleep 5
-if docker ps | grep -q $CONTAINER_NAME; then
-    echo "✅ コンテナが正常に起動しました"
-    docker logs $CONTAINER_NAME --tail 20
-else
-    echo "❌ コンテナの起動に失敗しました"
-    docker logs $CONTAINER_NAME
-    exit 1
-fi
+for i in {1..12}; do
+  if curl -f http://localhost:8014/health > /dev/null 2>&1; then
+    echo "Health check passed (attempt $i/12)"
+    break
+  fi
+  echo "  Attempt $i/12 failed, retrying in 5 seconds..."
+  sleep 5
+done
 
-echo "=== 起動完了 ==="
-echo "アプリケーションURL: http://localhost:8014"
-echo "ヘルスチェック: http://localhost:8014/health"
-echo ""
-echo "外部公開URL: https://api.hey-watch.me/avatar/"
+echo "=== Deployment complete ==="
+echo "Health: http://localhost:8014/health"
+echo "External: https://api.hey-watch.me/avatar/"
