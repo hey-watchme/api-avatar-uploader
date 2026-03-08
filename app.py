@@ -154,20 +154,29 @@ def delete_from_s3(s3_key: str) -> None:
 
 def update_database(table: str, record_id: str, avatar_url: Optional[str]) -> None:
     """
-    データベースのavatar_urlを更新
+    Update avatar_url in database and verify the result.
     """
     try:
-        if table == "users":
-            supabase.table(table).update(
-                {"avatar_url": avatar_url}
-            ).eq("user_id", record_id).execute()
-        elif table == "subjects":
-            supabase.table(table).update(
-                {"avatar_url": avatar_url}
-            ).eq("subject_id", record_id).execute()
+        id_column = "user_id" if table == "users" else "subject_id"
+        result = supabase.table(table).update(
+            {"avatar_url": avatar_url}
+        ).eq(id_column, record_id).execute()
+
+        if not result.data:
+            logger.error(f"Database update returned empty: table={table}, id={record_id}, avatar_url={avatar_url}")
+            raise HTTPException(status_code=500, detail="Database update returned no rows")
+
+        updated_url = result.data[0].get("avatar_url")
+        if updated_url != avatar_url:
+            logger.error(f"Database update mismatch: expected={avatar_url}, got={updated_url}")
+            raise HTTPException(status_code=500, detail="Database update verification failed")
+
+        logger.info(f"Database update verified: table={table}, id={record_id}, rows={len(result.data)}")
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Database update failed: {str(e)}")
-        raise HTTPException(status_code=500, detail="データベースの更新に失敗しました")
+        raise HTTPException(status_code=500, detail="Database update failed")
 
 @app.get("/health")
 async def health_check():
